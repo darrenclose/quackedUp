@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Quacked Up!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%);
+            font-family: 'Comic Sans MS', 'Chalkboard', 'Arial Rounded MT Bold', sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            height: 100%;
+            max-height: 750px;
+            border: 6px solid #112231;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(17, 34, 49, 0.4);
+            overflow: hidden;
+        }
+
+        @media (max-width: 500px) {
+            #gameContainer {
+                max-width: 100%;
+                max-height: 100%;
+                border-radius: 0;
+                border: none;
+            }
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #87CEEB;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        #menu, #gameOver, #characterSelect, #tutorials, #avoidScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(180deg, rgba(135, 206, 235, 0.97) 0%, rgba(226, 230, 233, 0.97) 100%);
+            z-index: 10;
+            padding: 20px;
+        }
+
+        #menu.hidden, #gameOver.hidden, #characterSelect.hidden, #tutorials.hidden, #avoidScreen.hidden {
+            display: none;
+        }
+
+        .title {
+            font-size: clamp(43px, 12vw, 62px);
+            color: #FF6B00;
+            text-shadow:
+                3px 3px 0 #112231,
+                -2px -2px 0 #FFD700,
+                2px -2px 0 #FFD700,
+                -2px 2px 0 #FFD700;
+            margin-bottom: 5px;
+            animation: bounce 0.6s ease-in-out infinite alternate;
+            text-align: center;
+        }
+
+        .tagline {
+            font-size: clamp(12px, 3vw, 16px);
+            color: #112231;
+            margin-bottom: 15px;
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-8px); }
+        }
+
+        .btn {
+            padding: clamp(12px, 3vw, 15px) clamp(35px, 10vw, 50px);
+            font-size: clamp(20px, 5vw, 28px);
+            font-family: inherit;
+            background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+            border: 4px solid #112231;
+            border-radius: 25px;
+            color: #112231;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 0 5px 0 #112231;
+            position: relative;
+            z-index: 10;
+            margin: 8px;
+            min-width: 180px;
+            text-align: center;
+        }
+
+        .btn:hover, .btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #112231;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(180deg, #e2e6e9 0%, #c5cdd3 100%);
+        }
+
+        .btn-small {
+            padding: 10px 25px;
+            font-size: clamp(14px, 3.5vw, 18px);
+            min-width: 120px;
+        }
+
+        .score-display {
+            font-size: clamp(48px, 15vw, 72px);
+            color: #FF6B00;
+            text-shadow:
+                3px 3px 0 #112231,
+                -2px -2px 0 #FFF,
+                2px -2px 0 #FFF,
+                -2px 2px 0 #FFF;
+            margin: 10px 0;
+        }
+
+        .final-score {
+            font-size: clamp(18px, 5vw, 24px);
+            color: #112231;
+            margin-bottom: 5px;
+        }
+
+        .high-score {
+            font-size: clamp(16px, 4vw, 20px);
+            color: #FF6B00;
+            margin-bottom: 20px;
+        }
+
+        .instructions {
+            font-size: clamp(12px, 3vw, 16px);
+            color: #112231;
+            margin-top: 20px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .character-preview {
+            width: clamp(160px, 50vw, 240px);
+            height: clamp(160px, 50vw, 240px);
+            margin: 10px;
+            animation: float 1s ease-in-out infinite alternate;
+            object-fit: contain;
+        }
+
+        .character-preview.hidden {
+            display: none;
+        }
+
+        @keyframes float {
+            from { transform: translateY(0) rotate(-5deg); }
+            to { transform: translateY(-12px) rotate(5deg); }
+        }
+
+        .character-selection {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .character-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            border: 4px solid transparent;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255,255,255,0.5);
+        }
+
+        .character-option:hover {
+            background: rgba(255,255,255,0.8);
+        }
+
+        .character-option.selected {
+            border-color: #FF6B00;
+            background: rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 15px rgba(255, 107, 0, 0.4);
+        }
+
+        .character-option svg {
+            width: clamp(50px, 15vw, 70px);
+            height: clamp(50px, 15vw, 70px);
+        }
+
+        .character-option .unicorn-preview,
+        .character-option .duck-preview,
+        .character-option .harri-preview {
+            width: clamp(80px, 25vw, 120px);
+            height: clamp(80px, 25vw, 120px);
+            object-fit: contain;
+        }
+
+        .character-option span {
+            margin-top: 8px;
+            font-size: clamp(14px, 3.5vw, 18px);
+            color: #112231;
+            font-weight: bold;
+        }
+
+        .section-title {
+            font-size: clamp(20px, 5vw, 28px);
+            color: #112231;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+
+        .menu-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        .lord-harri-img {
+            position: absolute;
+            bottom: -40px;
+            right: -160px;
+            width: clamp(432px, 120vw, 640px);
+            height: auto;
+            object-fit: contain;
+            z-index: 5;
+        }
+
+        #menu {
+            justify-content: flex-start;
+            padding-top: 40px;
+        }
+
+        #avoidScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #112231 0%, #1a3a4a 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #avoidScreen h2 {
+            color: #FF6B6B;
+            font-size: clamp(28px, 8vw, 48px);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .avoid-items {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .avoid-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px 20px;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .avoid-item canvas {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 10px;
+        }
+
+        .avoid-item span {
+            color: white;
+            font-size: clamp(12px, 3vw, 16px);
+            display: block;
+        }
+
+        #avoidScreen .btn {
+            margin-top: 20px;
+        }
+
+        .title-section {
+            text-align: left;
+        }
+
+        .title-section .title {
+            margin-bottom: 0;
+            font-size: clamp(28px, 8vw, 42px);
+        }
+
+        .title-section .tagline {
+            margin-bottom: 0;
+        }
+
+        a.btn {
+            text-decoration: none;
+        }
+
+        .mute-btn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 3px solid #112231;
+            background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 3px 0 #112231;
+            transition: transform 0.1s;
+        }
+
+        .mute-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .mute-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 1px 0 #112231;
+        }
+
+        #scorePopup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+            border: 5px solid #112231;
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            z-index: 20;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            max-width: 90%;
+        }
+
+        #scorePopup.hidden {
+            display: none;
+        }
+
+        #scorePopup h2 {
+            color: #112231;
+            font-size: clamp(24px, 6vw, 32px);
+            margin-bottom: 10px;
+        }
+
+        #scorePopup p {
+            color: #112231;
+            font-size: clamp(14px, 4vw, 18px);
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        #scorePopup .discount-code {
+            background: #112231;
+            color: #FFD700;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: clamp(16px, 4vw, 20px);
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <audio id="unicornArrivalSound" src="unicorn-arrival.mp3" preload="auto"></audio>
+        <audio id="duckQuackSound" src="duck-quack.mp3" preload="auto"></audio>
+        <audio id="comingOutSound" src="coming-out.mp3" preload="auto"></audio>
+        <audio id="menuMusic" src="menu-music.mp3" preload="auto" loop></audio>
+
+        <button id="muteBtn" class="mute-btn">🔊</button>
+
+        <div id="menu">
+            <h1 class="title">Quacked Up!</h1>
+            <p class="tagline">A Lord Harri Production</p>
+            <img src="duck.png" class="character-preview" id="menuPreviewDuck" alt="Duck">
+            <img src="harri.png" class="character-preview hidden" id="menuPreviewHarri" alt="Harri">
+            <img src="unicorn.png" class="character-preview hidden" id="menuPreviewUnicorn" alt="Unicorn">
+            <button class="btn" id="startBtn">PLAY!</button>
+            <button class="btn btn-secondary" id="characterBtn">Choose Character</button>
+            <a href="https://www.pocket-miracles.co.uk/lightbox-form-blackpool-lecture" target="_blank" class="btn btn-secondary" id="tutorialsBtn">Free Magic</a>
+            <img src="lord-harri.png" alt="Lord Harri" class="lord-harri-img" id="lordHarriImg">
+        </div>
+
+        <div id="avoidScreen" class="hidden">
+            <h2>AVOID!</h2>
+            <div class="avoid-items" id="avoidItems">
+                <!-- Filled dynamically based on character -->
+            </div>
+            <button class="btn" id="startGameBtn">Let's Go!</button>
+        </div>
+
+        <div id="characterSelect" class="hidden">
+            <h2 class="section-title">Choose Your Character</h2>
+            <div class="character-selection">
+                <div class="character-option selected" data-character="duck">
+                    <img src="duck.png" alt="Duck" class="duck-preview">
+                    <span>Duck</span>
+                </div>
+                <div class="character-option" data-character="harri">
+                    <img src="harri.png" alt="Harri" class="harri-preview">
+                    <span>Harri</span>
+                </div>
+                <div class="character-option" data-character="unicorn">
+                    <img src="unicorn.png" alt="Unicorn" class="unicorn-preview">
+                    <span>Unicorn</span>
+                </div>
+            </div>
+            <button class="btn" id="confirmCharBtn">Confirm</button>
+            <button class="btn btn-secondary btn-small" id="backBtn">Back</button>
+        </div>
+
+        <div id="gameOver" class="hidden">
+            <h1 class="title">Game Over!</h1>
+            <p class="final-score">Score</p>
+            <p class="score-display" id="finalScore">0</p>
+            <p class="high-score" id="highScoreText">Best: 0</p>
+            <div class="btn-row">
+                <button class="btn" id="restartBtn">Try Again!</button>
+                <button class="btn btn-secondary btn-small" id="menuBtn">Menu</button>
+            </div>
+        </div>
+
+        <div id="scorePopup" class="hidden">
+            <h2>🎉 Amazing! 🎉</h2>
+            <p>You scored 10!<br>Screenshot this for</p>
+            <div class="discount-code">10% OFF</div>
+            <p>anything from Pocket Miracles!</p>
+            <button class="btn btn-small" id="closePopupBtn">Awesome!</button>
+        </div>
+    </div>
+
+    <script>
+        // Game Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const menu = document.getElementById('menu');
+        const gameOverScreen = document.getElementById('gameOver');
+        const characterSelect = document.getElementById('characterSelect');
+        const scorePopup = document.getElementById('scorePopup');
+        const closePopupBtn = document.getElementById('closePopupBtn');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const menuBtn = document.getElementById('menuBtn');
+        const characterBtn = document.getElementById('characterBtn');
+        const confirmCharBtn = document.getElementById('confirmCharBtn');
+        const backBtn = document.getElementById('backBtn');
+        const finalScoreEl = document.getElementById('finalScore');
+        const highScoreTextEl = document.getElementById('highScoreText');
+        const menuPreviewDuck = document.getElementById('menuPreviewDuck');
+        const menuPreviewHarri = document.getElementById('menuPreviewHarri');
+        const menuPreviewUnicorn = document.getElementById('menuPreviewUnicorn');
+        const menuMusic = document.getElementById('menuMusic');
+        const muteBtn = document.getElementById('muteBtn');
+        let isMuted = false;
+
+        // Mute functionality
+        function toggleMute() {
+            isMuted = !isMuted;
+            muteBtn.textContent = isMuted ? '🔇' : '🔊';
+
+            // Mute/unmute all audio elements
+            document.querySelectorAll('audio').forEach(audio => {
+                audio.muted = isMuted;
+            });
+
+            // Also mute the Web Audio API context
+            if (audioCtx) {
+                if (isMuted) {
+                    audioCtx.suspend();
+                } else {
+                    audioCtx.resume();
+                }
+            }
+        }
+
+        muteBtn.addEventListener('click', toggleMute);
+
+        // Start menu music on first interaction
+        function startMenuMusic() {
+            if (menuMusic && !isMuted) {
+                menuMusic.volume = 0.5;
+                menuMusic.play().catch(e => console.log('Menu music autoplay blocked:', e));
+            }
+        }
+
+        // Try to play on first user interaction
+        document.addEventListener('click', function initMusic() {
+            startMenuMusic();
+            document.removeEventListener('click', initMusic);
+        }, { once: true });
+
+        // Responsive canvas
+        let canvasWidth, canvasHeight;
+
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvasWidth = container.clientWidth;
+            canvasHeight = container.clientHeight;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game State
+        let gameState = 'menu';
+        let score = 0;
+        let highScore = localStorage.getItem('quackedUpHighScore') || 0;
+        let frameCount = 0;
+        let selectedCharacter = localStorage.getItem('quackedUpCharacter') || 'duck';
+
+        // Update menu preview based on character
+        function updateMenuPreview() {
+            menuPreviewDuck.classList.add('hidden');
+            menuPreviewHarri.classList.add('hidden');
+            menuPreviewUnicorn.classList.add('hidden');
+
+            if (selectedCharacter === 'unicorn') {
+                menuPreviewUnicorn.classList.remove('hidden');
+            } else if (selectedCharacter === 'harri') {
+                menuPreviewHarri.classList.remove('hidden');
+            } else {
+                menuPreviewDuck.classList.remove('hidden');
+            }
+        }
+        updateMenuPreview();
+
+        // Character selection
+        document.querySelectorAll('.character-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.character-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedCharacter = option.dataset.character;
+            });
+        });
+
+        // Audio Context
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx || isMuted) return;
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'flap') {
+                oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'score') {
+                oscillator.frequency.setValueAtTime(523, audioCtx.currentTime);
+                oscillator.frequency.setValueAtTime(659, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'hit') {
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'quack') {
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(350, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.15);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.15);
+            } else if (type === 'neigh') {
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.1);
+                oscillator.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.25);
+            }
+        }
+
+        // Player character
+        // Load unicorn image
+        const unicornImg = new Image();
+        unicornImg.src = 'unicorn.png';
+
+        const duckImg = new Image();
+        duckImg.src = 'duck.png';
+
+        const harriImg = new Image();
+        harriImg.src = 'harri.png';
+
+        const player = {
+            x: 80,
+            y: 250,
+            width: 50,
+            height: 45,
+            velocity: 0,
+            gravity: 0.45,
+            jumpStrength: -8.5,
+            rotation: 0,
+            wingAngle: 0,
+            wingDirection: 1,
+            maneWave: 0,
+
+            reset() {
+                this.y = canvasHeight * 0.4;
+                this.velocity = 0;
+                this.rotation = 0;
+            },
+
+            jump() {
+                this.velocity = this.jumpStrength;
+                playSound('flap');
+                if (selectedCharacter === 'duck' || selectedCharacter === 'harri') {
+                    playSound('quack');
+                } else {
+                    playSound('neigh');
+                }
+            },
+
+            update() {
+                this.velocity += this.gravity;
+                this.y += this.velocity;
+
+                this.rotation = Math.min(Math.max(this.velocity * 3, -30), 90);
+
+                this.wingAngle += 0.3 * this.wingDirection;
+                if (this.wingAngle > 0.5 || this.wingAngle < -0.5) {
+                    this.wingDirection *= -1;
+                }
+
+                this.maneWave += 0.15;
+
+                if (this.y < 0) {
+                    this.y = 0;
+                    this.velocity = 0;
+                }
+            },
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.rotate(this.rotation * Math.PI / 180);
+
+                const scale = Math.min(canvasWidth / 400, canvasHeight / 600);
+                ctx.scale(scale, scale);
+
+                if (selectedCharacter === 'duck') {
+                    this.drawDuck();
+                } else if (selectedCharacter === 'harri') {
+                    this.drawHarri();
+                } else {
+                    this.drawUnicorn();
+                }
+
+                ctx.restore();
+            },
+
+            drawDuck() {
+                // Same sizing approach as unicorn
+                const targetHeight = 105;
+                const aspectRatio = duckImg.naturalWidth / duckImg.naturalHeight || 1;
+                const w = targetHeight * aspectRatio;
+                const h = targetHeight;
+
+                // Draw the duck image, flipped horizontally to face right
+                if (duckImg.complete) {
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(duckImg, -w/2, -h/2, w, h);
+                    ctx.restore();
+                }
+            },
+
+            drawHarri() {
+                // Same sizing approach as duck/unicorn
+                const targetHeight = 105;
+                const aspectRatio = harriImg.naturalWidth / harriImg.naturalHeight || 1;
+                const w = targetHeight * aspectRatio;
+                const h = targetHeight;
+
+                // Draw Harri image, flipped horizontally to face right
+                if (harriImg.complete) {
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(harriImg, -w/2, -h/2, w, h);
+                    ctx.restore();
+                }
+            },
+
+            drawUnicorn() {
+                // 75% of 140 = 105, use natural aspect ratio
+                const targetHeight = 105;
+                const aspectRatio = unicornImg.naturalWidth / unicornImg.naturalHeight || 1;
+                const w = targetHeight * aspectRatio;
+                const h = targetHeight;
+
+                // Draw the unicorn image, flipped horizontally to face right
+                if (unicornImg.complete) {
+                    ctx.save();
+                    // Flip horizontally
+                    ctx.scale(-1, 1);
+                    // Draw image (negative x because we flipped)
+                    ctx.drawImage(unicornImg, -w/2, -h/2, w, h);
+                    ctx.restore();
+                }
+            }
+        };
+
+        // Obstacles - Pipes for duck, Fences & Clouds for unicorn
+        const obstacles = [];
+        let obstacleWidth = 70;
+        let obstacleGap = 160;
+        let obstacleSpeed = 3;
+
+        function createObstacle() {
+            const groundY = canvasHeight * 0.87;
+
+            if (selectedCharacter === 'duck' || selectedCharacter === 'harri') {
+                // Playing cards, balloons, and paper bags for duck/harri
+                const rand = Math.random();
+
+                if (rand < 0.65) {
+                    // Card tower obstacles (like pipes but made of stacked cards)
+                    const minHeight = canvasHeight * 0.12;
+                    const maxHeight = groundY - obstacleGap - minHeight;
+                    const topHeight = Math.random() * (maxHeight - minHeight) + minHeight;
+
+                    obstacles.push({
+                        type: 'cardTower',
+                        x: canvasWidth,
+                        topHeight: topHeight,
+                        bottomY: topHeight + obstacleGap,
+                        passed: false
+                    });
+                } else if (rand < 0.85) {
+                    // Balloon cluster obstacle
+                    const balloonY = canvasHeight * (0.15 + Math.random() * 0.5);
+                    obstacles.push({
+                        type: 'balloon',
+                        x: canvasWidth,
+                        y: balloonY,
+                        width: 60 + Math.random() * 30,
+                        height: 80 + Math.random() * 30,
+                        color: ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'][Math.floor(Math.random() * 5)],
+                        passed: false
+                    });
+                } else {
+                    // Paper bag obstacle
+                    const bagY = canvasHeight * (0.25 + Math.random() * 0.4);
+                    obstacles.push({
+                        type: 'paperBag',
+                        x: canvasWidth,
+                        y: bagY,
+                        width: 50,
+                        height: 65,
+                        passed: false
+                    });
+                }
+            } else {
+                // Fences and clouds for unicorn
+                const rand = Math.random();
+
+                if (rand < 0.6) {
+                    // Fence obstacle
+                    const fenceHeight = canvasHeight * (0.12 + Math.random() * 0.15);
+                    obstacles.push({
+                        type: 'fence',
+                        x: canvasWidth,
+                        y: groundY - fenceHeight,
+                        width: 40,
+                        height: fenceHeight,
+                        passed: false
+                    });
+                } else {
+                    // Cloud obstacle
+                    const cloudY = canvasHeight * (0.15 + Math.random() * 0.45);
+                    obstacles.push({
+                        type: 'cloud',
+                        x: canvasWidth,
+                        y: cloudY,
+                        width: 80 + Math.random() * 40,
+                        height: 50 + Math.random() * 20,
+                        passed: false
+                    });
+                }
+            }
+        }
+
+        function drawObstacle(obs) {
+            const scale = Math.min(canvasWidth / 400, 1);
+
+            if (obs.type === 'cardTower') {
+                drawCardTower(obs, scale);
+            } else if (obs.type === 'balloon') {
+                drawBalloon(obs, scale);
+            } else if (obs.type === 'paperBag') {
+                drawPaperBag(obs, scale);
+            } else if (obs.type === 'fence') {
+                drawFence(obs, scale);
+            } else if (obs.type === 'cloud') {
+                drawObstacleCloud(obs, scale);
+            }
+        }
+
+        function drawCardTower(tower, scale) {
+            const x = tower.x;
+            const topH = tower.topHeight;
+            const bottomY = tower.bottomY;
+            const groundY = canvasHeight * 0.87;
+            const pw = obstacleWidth * scale;
+            const cardHeight = 25 * scale;
+            const cardWidth = pw + 10;
+
+            // Draw top card tower (hanging down)
+            const topCards = Math.ceil(topH / cardHeight);
+            for (let i = 0; i < topCards; i++) {
+                const cardY = i * cardHeight;
+                const isRed = i % 2 === 0;
+
+                // Card background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.roundRect(x - 5, cardY, cardWidth, cardHeight - 2, 4);
+                ctx.fill();
+
+                // Card border
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Card suit/pattern
+                ctx.fillStyle = isRed ? '#E74C3C' : '#2C3E50';
+                ctx.font = `bold ${14 * scale}px Arial`;
+                ctx.textAlign = 'center';
+                const suits = isRed ? ['♥', '♦'] : ['♠', '♣'];
+                const suit = suits[i % 2];
+                ctx.fillText(suit, x + cardWidth / 2 - 5, cardY + cardHeight / 2 + 5);
+            }
+
+            // Draw bottom card tower (standing up)
+            const bottomHeight = groundY - bottomY;
+            const bottomCards = Math.ceil(bottomHeight / cardHeight);
+            for (let i = 0; i < bottomCards; i++) {
+                const cardY = bottomY + i * cardHeight;
+                if (cardY > groundY - cardHeight) break;
+                const isRed = i % 2 === 0;
+
+                // Card background
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.roundRect(x - 5, cardY, cardWidth, cardHeight - 2, 4);
+                ctx.fill();
+
+                // Card border
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Card suit/pattern
+                ctx.fillStyle = isRed ? '#E74C3C' : '#2C3E50';
+                ctx.font = `bold ${14 * scale}px Arial`;
+                ctx.textAlign = 'center';
+                const suits = isRed ? ['♥', '♦'] : ['♠', '♣'];
+                const suit = suits[i % 2];
+                ctx.fillText(suit, x + cardWidth / 2 - 5, cardY + cardHeight / 2 + 5);
+            }
+        }
+
+        function drawBalloon(balloon, scale) {
+            const x = balloon.x;
+            const y = balloon.y;
+            const w = balloon.width * scale;
+            const h = balloon.height * scale;
+            const color = balloon.color;
+
+            // Balloon string
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x + w / 2, y + h);
+            ctx.quadraticCurveTo(x + w / 2 + 10, y + h + 30, x + w / 2, y + h + 50);
+            ctx.stroke();
+
+            // Balloon body
+            const gradient = ctx.createRadialGradient(x + w * 0.3, y + h * 0.3, 0, x + w / 2, y + h / 2, w / 2);
+            gradient.addColorStop(0, '#FFFFFF');
+            gradient.addColorStop(0.3, color);
+            gradient.addColorStop(1, color);
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Balloon shine
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.beginPath();
+            ctx.ellipse(x + w * 0.35, y + h * 0.35, w * 0.15, h * 0.2, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Balloon knot
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x + w / 2 - 6, y + h);
+            ctx.lineTo(x + w / 2, y + h + 10);
+            ctx.lineTo(x + w / 2 + 6, y + h);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawPaperBag(bag, scale) {
+            const x = bag.x;
+            const y = bag.y;
+            const w = bag.width * scale;
+            const h = bag.height * scale;
+
+            // Bag body
+            const bagGradient = ctx.createLinearGradient(x, y, x + w, y);
+            bagGradient.addColorStop(0, '#C9A66B');
+            bagGradient.addColorStop(0.5, '#DEB887');
+            bagGradient.addColorStop(1, '#C9A66B');
+
+            ctx.fillStyle = bagGradient;
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, [0, 0, 5, 5]);
+            ctx.fill();
+
+            // Bag opening fold
+            ctx.fillStyle = '#B8956E';
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + w * 0.15, y + h * 0.15);
+            ctx.lineTo(x + w * 0.85, y + h * 0.15);
+            ctx.lineTo(x + w, y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Bag crinkle lines
+            ctx.strokeStyle = '#A67C52';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.3, y + h * 0.2);
+            ctx.lineTo(x + w * 0.25, y + h * 0.8);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.7, y + h * 0.2);
+            ctx.lineTo(x + w * 0.75, y + h * 0.8);
+            ctx.stroke();
+
+            // Bag outline
+            ctx.strokeStyle = '#8B6914';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, [0, 0, 5, 5]);
+            ctx.stroke();
+
+            // "?" mystery symbol
+            ctx.fillStyle = '#5D4037';
+            ctx.font = `bold ${20 * scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText('?', x + w / 2, y + h * 0.65);
+        }
+
+        function drawFence(fence, scale) {
+            const x = fence.x;
+            const y = fence.y;
+            const w = fence.width * scale;
+            const h = fence.height;
+            const postWidth = 12 * scale;
+            const railHeight = 10 * scale;
+
+            // Fence posts
+            ctx.fillStyle = '#8B4513';
+
+            // Left post
+            ctx.beginPath();
+            ctx.roundRect(x, y, postWidth, h, [4, 4, 0, 0]);
+            ctx.fill();
+
+            // Right post
+            ctx.beginPath();
+            ctx.roundRect(x + w - postWidth, y, postWidth, h, [4, 4, 0, 0]);
+            ctx.fill();
+
+            // Post tops (pointed)
+            ctx.fillStyle = '#A0522D';
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + postWidth / 2, y - 15);
+            ctx.lineTo(x + postWidth, y);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(x + w - postWidth, y);
+            ctx.lineTo(x + w - postWidth / 2, y - 15);
+            ctx.lineTo(x + w, y);
+            ctx.fill();
+
+            // Horizontal rails
+            const railGradient = ctx.createLinearGradient(x, 0, x + w, 0);
+            railGradient.addColorStop(0, '#DEB887');
+            railGradient.addColorStop(0.5, '#F5DEB3');
+            railGradient.addColorStop(1, '#DEB887');
+
+            ctx.fillStyle = railGradient;
+
+            // Top rail
+            ctx.beginPath();
+            ctx.roundRect(x - 3, y + h * 0.2, w + 6, railHeight, 3);
+            ctx.fill();
+            ctx.strokeStyle = '#8B4513';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Middle rail
+            ctx.beginPath();
+            ctx.roundRect(x - 3, y + h * 0.5, w + 6, railHeight, 3);
+            ctx.fill();
+            ctx.stroke();
+
+            // Bottom rail
+            ctx.beginPath();
+            ctx.roundRect(x - 3, y + h * 0.8, w + 6, railHeight, 3);
+            ctx.fill();
+            ctx.stroke();
+
+            // Wood grain details
+            ctx.strokeStyle = '#A0522D';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + 3, y + 10);
+            ctx.lineTo(x + 3, y + h - 5);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + w - postWidth + 3, y + 10);
+            ctx.lineTo(x + w - postWidth + 3, y + h - 5);
+            ctx.stroke();
+        }
+
+        function drawObstacleCloud(cloud, scale) {
+            const x = cloud.x;
+            const y = cloud.y;
+            const w = cloud.width * scale;
+            const h = cloud.height * scale;
+
+            // Dark stormy cloud
+            ctx.fillStyle = '#5D6D7E';
+            ctx.beginPath();
+            ctx.ellipse(x + w * 0.3, y + h * 0.5, w * 0.35, h * 0.45, 0, 0, Math.PI * 2);
+            ctx.ellipse(x + w * 0.6, y + h * 0.4, w * 0.3, h * 0.4, 0, 0, Math.PI * 2);
+            ctx.ellipse(x + w * 0.8, y + h * 0.55, w * 0.25, h * 0.35, 0, 0, Math.PI * 2);
+            ctx.ellipse(x + w * 0.5, y + h * 0.65, w * 0.3, h * 0.3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Darker bottom
+            ctx.fillStyle = '#4A5568';
+            ctx.beginPath();
+            ctx.ellipse(x + w * 0.4, y + h * 0.7, w * 0.35, h * 0.25, 0, 0, Math.PI * 2);
+            ctx.ellipse(x + w * 0.65, y + h * 0.72, w * 0.25, h * 0.22, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Lightning bolt
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.45, y + h * 0.7);
+            ctx.lineTo(x + w * 0.52, y + h * 0.85);
+            ctx.lineTo(x + w * 0.48, y + h * 0.85);
+            ctx.lineTo(x + w * 0.42, y + h * 1.05);
+            ctx.lineTo(x + w * 0.5, y + h * 0.88);
+            ctx.lineTo(x + w * 0.54, y + h * 0.88);
+            ctx.lineTo(x + w * 0.5, y + h * 0.7);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#FFA500';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Angry face on cloud
+            ctx.fillStyle = '#2C3E50';
+            // Eyes
+            ctx.beginPath();
+            ctx.ellipse(x + w * 0.35, y + h * 0.4, w * 0.06, h * 0.08, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(x + w * 0.55, y + h * 0.4, w * 0.06, h * 0.08, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Angry eyebrows
+            ctx.strokeStyle = '#2C3E50';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.28, y + h * 0.32);
+            ctx.lineTo(x + w * 0.4, y + h * 0.28);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.62, y + h * 0.28);
+            ctx.lineTo(x + w * 0.5, y + h * 0.32);
+            ctx.stroke();
+        }
+
+        // Background
+        const bgClouds = [];
+        function initClouds() {
+            bgClouds.length = 0;
+            for (let i = 0; i < 5; i++) {
+                bgClouds.push({
+                    x: Math.random() * canvasWidth,
+                    y: Math.random() * canvasHeight * 0.3 + 30,
+                    size: Math.random() * 40 + 40,
+                    speed: Math.random() * 0.5 + 0.2
+                });
+            }
+        }
+        initClouds();
+
+        function drawBackground() {
+            // Different sky for unicorn mode
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+
+            if (selectedCharacter === 'unicorn') {
+                // Magical pastel sky
+                skyGradient.addColorStop(0, '#E8D5E8');
+                skyGradient.addColorStop(0.3, '#F8E1F4');
+                skyGradient.addColorStop(0.6, '#E6F3FF');
+                skyGradient.addColorStop(1, '#FFF0F5');
+            } else {
+                skyGradient.addColorStop(0, '#87CEEB');
+                skyGradient.addColorStop(0.6, '#B0E2FF');
+                skyGradient.addColorStop(1, '#E0F6FF');
+            }
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // Sun (rainbow sun for unicorn)
+            if (selectedCharacter === 'unicorn') {
+                // Rainbow sun
+                const sunX = canvasWidth - 60;
+                const sunY = 70;
+                ctx.fillStyle = '#FFB6C1';
+                ctx.beginPath();
+                ctx.arc(sunX, sunY, 45, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(sunX, sunY, 35, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#FFF8DC';
+                ctx.beginPath();
+                ctx.arc(sunX, sunY, 25, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.fillStyle = '#FFE87C';
+                ctx.beginPath();
+                ctx.arc(canvasWidth - 60, 70, 40, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#FFF176';
+                ctx.beginPath();
+                ctx.arc(canvasWidth - 60, 70, 30, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Background clouds (friendly ones)
+            bgClouds.forEach(cloud => {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.beginPath();
+                ctx.arc(cloud.x, cloud.y, cloud.size * 0.5, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size * 0.4, cloud.y - cloud.size * 0.1, cloud.size * 0.4, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size * 0.8, cloud.y, cloud.size * 0.45, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size * 0.4, cloud.y + cloud.size * 0.2, cloud.size * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+
+                cloud.x -= cloud.speed;
+                if (cloud.x + cloud.size < 0) {
+                    cloud.x = canvasWidth + cloud.size;
+                    cloud.y = Math.random() * canvasHeight * 0.3 + 30;
+                }
+            });
+
+            // Add rainbows for unicorn mode
+            if (selectedCharacter === 'unicorn' && gameState === 'playing') {
+                drawRainbow(50, 120, 0.4);
+            }
+
+            // Draw ceiling clouds (danger zone at top)
+            if (gameState === 'playing') {
+                const ceilingHeight = canvasHeight * 0.08;
+                // Dark stormy ceiling clouds
+                ctx.fillStyle = '#5D6D7E';
+                for (let x = 0; x < canvasWidth + 50; x += 60) {
+                    ctx.beginPath();
+                    ctx.arc(x, -10, 40, 0, Math.PI * 2);
+                    ctx.arc(x + 30, 5, 35, 0, Math.PI * 2);
+                    ctx.arc(x + 60, -5, 38, 0, Math.PI * 2);
+                    ctx.arc(x + 30, 20, 30, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                // Bottom edge of ceiling clouds
+                ctx.fillStyle = '#4A5568';
+                ctx.fillRect(0, 0, canvasWidth, ceilingHeight - 10);
+
+                // Warning gradient
+                const warnGradient = ctx.createLinearGradient(0, 0, 0, ceilingHeight);
+                warnGradient.addColorStop(0, 'rgba(74, 85, 104, 1)');
+                warnGradient.addColorStop(1, 'rgba(74, 85, 104, 0)');
+                ctx.fillStyle = warnGradient;
+                ctx.fillRect(0, ceilingHeight - 15, canvasWidth, 20);
+            }
+        }
+
+        function drawRainbow(x, y, opacity) {
+            const colors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#9B59B6'];
+            const baseRadius = 100;
+
+            ctx.globalAlpha = opacity;
+            colors.forEach((color, i) => {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.arc(x, y + 60, baseRadius - i * 10, Math.PI, 0);
+                ctx.stroke();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // Ground
+        let groundOffset = 0;
+
+        function drawGround() {
+            const groundY = canvasHeight * 0.87;
+
+            if (selectedCharacter === 'unicorn') {
+                // Magical meadow ground
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(0, groundY + 20, canvasWidth, canvasHeight - groundY);
+
+                // Pink/purple grass gradient
+                const grassGradient = ctx.createLinearGradient(0, groundY, 0, groundY + 25);
+                grassGradient.addColorStop(0, '#90EE90');
+                grassGradient.addColorStop(0.5, '#7CFC00');
+                grassGradient.addColorStop(1, '#228B22');
+                ctx.fillStyle = grassGradient;
+                ctx.fillRect(0, groundY, canvasWidth, 25);
+
+                // Grass blades
+                ctx.fillStyle = '#98FB98';
+                for (let i = -groundOffset % 20; i < canvasWidth; i += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, groundY);
+                    ctx.lineTo(i + 10, groundY - 10);
+                    ctx.lineTo(i + 20, groundY);
+                    ctx.fill();
+                }
+
+                // Flowers in grass
+                const flowerColors = ['#FF69B4', '#FFD700', '#FF6B6B', '#9B59B6'];
+                for (let i = -groundOffset % 60; i < canvasWidth; i += 60) {
+                    ctx.fillStyle = flowerColors[Math.floor(i / 60) % flowerColors.length];
+                    ctx.beginPath();
+                    ctx.arc(i + 30, groundY - 5, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(i + 30, groundY - 5, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(0, groundY + 20, canvasWidth, canvasHeight - groundY);
+
+                const grassGradient = ctx.createLinearGradient(0, groundY, 0, groundY + 25);
+                grassGradient.addColorStop(0, '#7CFC00');
+                grassGradient.addColorStop(0.5, '#32CD32');
+                grassGradient.addColorStop(1, '#228B22');
+                ctx.fillStyle = grassGradient;
+                ctx.fillRect(0, groundY, canvasWidth, 25);
+
+                ctx.fillStyle = '#90EE90';
+                for (let i = -groundOffset % 20; i < canvasWidth; i += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, groundY);
+                    ctx.lineTo(i + 10, groundY - 8);
+                    ctx.lineTo(i + 20, groundY);
+                    ctx.fill();
+                }
+            }
+
+            ctx.fillStyle = '#A0522D';
+            for (let i = -groundOffset % 40; i < canvasWidth; i += 40) {
+                ctx.beginPath();
+                ctx.arc(i + 20, groundY + 40, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            if (gameState === 'playing') {
+                groundOffset += obstacleSpeed;
+            }
+        }
+
+        // Score
+        function drawScore() {
+            const fontSize = Math.min(canvasWidth * 0.12, 48);
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = '#112231';
+            ctx.lineWidth = 4;
+            ctx.font = `bold ${fontSize}px "Comic Sans MS", cursive`;
+            ctx.textAlign = 'center';
+            ctx.strokeText(score, canvasWidth / 2, fontSize + 10);
+            ctx.fillText(score, canvasWidth / 2, fontSize + 10);
+        }
+
+        // Collision
+        function checkCollision() {
+            const groundY = canvasHeight * 0.87;
+            const scale = Math.min(canvasWidth / 400, canvasHeight / 600);
+
+            // Ground collision
+            if (player.y + player.height * scale > groundY) {
+                return true;
+            }
+
+            // Ceiling collision (clouds at top)
+            const ceilingHeight = canvasHeight * 0.08;
+            if (player.y < ceilingHeight) {
+                return true;
+            }
+
+            // Obstacle collision
+            for (const obs of obstacles) {
+                if (obs.type === 'cardTower') {
+                    const pw = obstacleWidth * Math.min(canvasWidth / 400, 1) + 10;
+                    const playerRight = player.x + player.width * scale - 10;
+                    const playerLeft = player.x + 10;
+                    const playerTop = player.y + 5;
+                    const playerBottom = player.y + player.height * scale - 5;
+
+                    if (playerRight > obs.x - 5 && playerLeft < obs.x + pw) {
+                        if (playerTop < obs.topHeight || playerBottom > obs.bottomY) {
+                            return true;
+                        }
+                    }
+                } else if (obs.type === 'balloon') {
+                    const balloonScale = Math.min(canvasWidth / 400, 1);
+                    const playerCenterX = player.x + player.width * scale / 2;
+                    const playerCenterY = player.y + player.height * scale / 2;
+
+                    const balloonCenterX = obs.x + obs.width * balloonScale / 2;
+                    const balloonCenterY = obs.y + obs.height * balloonScale / 2;
+
+                    const dx = playerCenterX - balloonCenterX;
+                    const dy = playerCenterY - balloonCenterY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    const hitRadius = (obs.width * balloonScale * 0.4 + player.width * scale * 0.3);
+                    if (distance < hitRadius) {
+                        return true;
+                    }
+                } else if (obs.type === 'paperBag') {
+                    const bagScale = Math.min(canvasWidth / 400, 1);
+                    const playerRight = player.x + player.width * scale - 8;
+                    const playerLeft = player.x + 8;
+                    const playerTop = player.y + 5;
+                    const playerBottom = player.y + player.height * scale - 5;
+
+                    const bagRight = obs.x + obs.width * bagScale;
+                    const bagBottom = obs.y + obs.height * bagScale;
+
+                    if (playerRight > obs.x && playerLeft < bagRight &&
+                        playerBottom > obs.y && playerTop < bagBottom) {
+                        return true;
+                    }
+                } else if (obs.type === 'fence') {
+                    const fenceScale = Math.min(canvasWidth / 400, 1);
+                    const playerRight = player.x + player.width * scale - 8;
+                    const playerLeft = player.x + 8;
+                    const playerBottom = player.y + player.height * scale - 5;
+
+                    const fenceRight = obs.x + obs.width * fenceScale;
+                    const fenceTop = obs.y - 15; // Account for pointed top
+
+                    if (playerRight > obs.x && playerLeft < fenceRight) {
+                        if (playerBottom > fenceTop) {
+                            return true;
+                        }
+                    }
+                } else if (obs.type === 'cloud') {
+                    const cloudScale = Math.min(canvasWidth / 400, 1);
+                    const playerCenterX = player.x + player.width * scale / 2;
+                    const playerCenterY = player.y + player.height * scale / 2;
+
+                    const cloudCenterX = obs.x + obs.width * cloudScale / 2;
+                    const cloudCenterY = obs.y + obs.height * cloudScale / 2;
+
+                    const dx = playerCenterX - cloudCenterX;
+                    const dy = playerCenterY - cloudCenterY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    const hitRadius = (obs.width * cloudScale * 0.35 + player.width * scale * 0.3);
+
+                    if (distance < hitRadius) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        // Game loop
+        function gameLoop() {
+            drawBackground();
+
+            // Scale game parameters
+            const scale = Math.min(canvasWidth / 400, canvasHeight / 600);
+            obstacleSpeed = 3 * scale;
+            obstacleGap = 160 * scale;
+            player.gravity = 0.45 * scale;
+            player.jumpStrength = -8.5 * scale;
+
+            if (gameState === 'playing') {
+                player.update();
+
+                const pw = obstacleWidth * Math.min(canvasWidth / 400, 1);
+
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    obstacles[i].x -= obstacleSpeed;
+
+                    // Score check
+                    let obstacleRight;
+                    if (obstacles[i].type === 'cardTower') {
+                        obstacleRight = obstacles[i].x + pw + 10;
+                    } else {
+                        obstacleRight = obstacles[i].x + (obstacles[i].width || 40) * Math.min(canvasWidth / 400, 1);
+                    }
+
+                    if (!obstacles[i].passed && obstacleRight < player.x) {
+                        obstacles[i].passed = true;
+                        score++;
+                        playSound('score');
+
+                        // Show popup immediately when hitting 10
+                        if (score === 10) {
+                            gameState = 'paused';
+                            scorePopup.classList.remove('hidden');
+                            // Stop menu music
+                            if (menuMusic) {
+                                menuMusic.pause();
+                            }
+                            // Play celebration music
+                            const comingOut = document.getElementById('comingOutSound');
+                            if (comingOut && !isMuted) {
+                                comingOut.currentTime = 0;
+                                comingOut.play().catch(e => console.log('Audio play failed:', e));
+                            }
+                        }
+                    }
+
+                    // Remove off-screen obstacles
+                    if (obstacleRight < 0) {
+                        obstacles.splice(i, 1);
+                    }
+                }
+
+                // Create new obstacles
+                frameCount++;
+                const spawnRate = selectedCharacter === 'unicorn' ? 80 : 100;
+                if (frameCount % Math.round(spawnRate / scale) === 0) {
+                    createObstacle();
+                }
+
+                // Check collision
+                if (checkCollision()) {
+                    gameState = 'gameOver';
+                    playSound('hit');
+
+                    if (score > highScore) {
+                        highScore = score;
+                        localStorage.setItem('quackedUpHighScore', highScore);
+                    }
+
+                    finalScoreEl.textContent = score;
+                    highScoreTextEl.textContent = `Best: ${highScore}`;
+                    gameOverScreen.classList.remove('hidden');
+
+                }
+            }
+
+            // Draw obstacles (before ground for fences)
+            obstacles.forEach(obs => {
+                if (obs.type !== 'fence') {
+                    drawObstacle(obs);
+                }
+            });
+
+            drawGround();
+
+            // Draw fences after ground
+            obstacles.forEach(obs => {
+                if (obs.type === 'fence') {
+                    drawObstacle(obs);
+                }
+            });
+
+            player.draw();
+
+            if (gameState === 'playing') {
+                drawScore();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Input
+        function handleInput(e) {
+            if (e) e.preventDefault();
+            if (gameState === 'playing') {
+                player.jump();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                handleInput();
+            }
+        });
+
+        canvas.addEventListener('click', handleInput);
+        canvas.addEventListener('touchstart', handleInput, { passive: false });
+
+        // Avoid screen elements
+        const avoidScreen = document.getElementById('avoidScreen');
+        const avoidItems = document.getElementById('avoidItems');
+        const startGameBtn = document.getElementById('startGameBtn');
+
+        function showAvoidScreen() {
+            avoidItems.innerHTML = '';
+
+            if (selectedCharacter === 'duck' || selectedCharacter === 'harri') {
+                // Duck/Harri obstacles: Cards, Balloons, Paper Bags
+                const duckObstacles = [
+                    { name: 'Card Towers', draw: drawAvoidCardTower },
+                    { name: 'Balloons', draw: drawAvoidBalloon },
+                    { name: 'Paper Bags', draw: drawAvoidPaperBag }
+                ];
+                duckObstacles.forEach(obs => {
+                    const item = createAvoidItem(obs.name, obs.draw);
+                    avoidItems.appendChild(item);
+                });
+            } else {
+                // Unicorn obstacles: Fences, Storm Clouds
+                const unicornObstacles = [
+                    { name: 'Fences', draw: drawAvoidFence },
+                    { name: 'Storm Clouds', draw: drawAvoidCloud }
+                ];
+                unicornObstacles.forEach(obs => {
+                    const item = createAvoidItem(obs.name, obs.draw);
+                    avoidItems.appendChild(item);
+                });
+            }
+
+            menu.classList.add('hidden');
+            avoidScreen.classList.remove('hidden');
+        }
+
+        function createAvoidItem(name, drawFunc) {
+            const item = document.createElement('div');
+            item.className = 'avoid-item';
+
+            const canvas = document.createElement('canvas');
+            canvasWidth = 80;
+            canvasHeight = 80;
+            const c = canvas.getContext('2d');
+            drawFunc(c);
+
+            const label = document.createElement('span');
+            label.textContent = name;
+
+            item.appendChild(canvas);
+            item.appendChild(label);
+            return item;
+        }
+
+        function drawAvoidCardTower(c) {
+            const cardHeight = 18;
+            const cardWidth = 50;
+            const x = 15;
+            for (let i = 0; i < 4; i++) {
+                const cardY = 5 + i * cardHeight;
+                const isRed = i % 2 === 0;
+                c.fillStyle = '#FFFFFF';
+                c.beginPath();
+                c.roundRect(x, cardY, cardWidth, cardHeight - 2, 3);
+                c.fill();
+                c.strokeStyle = '#333';
+                c.lineWidth = 1;
+                c.stroke();
+                c.fillStyle = isRed ? '#E74C3C' : '#2C3E50';
+                c.font = 'bold 12px Arial';
+                c.textAlign = 'center';
+                const suits = isRed ? ['♥', '♦'] : ['♠', '♣'];
+                c.fillText(suits[i % 2], x + cardWidth / 2, cardY + 13);
+            }
+        }
+
+        function drawAvoidBalloon(c) {
+            c.strokeStyle = '#666';
+            c.lineWidth = 2;
+            c.beginPath();
+            c.moveTo(40, 55);
+            c.quadraticCurveTo(45, 65, 40, 75);
+            c.stroke();
+            const gradient = c.createRadialGradient(32, 25, 0, 40, 35, 25);
+            gradient.addColorStop(0, '#FFFFFF');
+            gradient.addColorStop(0.3, '#FF6B6B');
+            gradient.addColorStop(1, '#FF6B6B');
+            c.fillStyle = gradient;
+            c.beginPath();
+            c.ellipse(40, 35, 22, 28, 0, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = 'rgba(255,255,255,0.4)';
+            c.beginPath();
+            c.ellipse(32, 25, 6, 10, -0.5, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = '#FF6B6B';
+            c.beginPath();
+            c.moveTo(34, 55);
+            c.lineTo(40, 62);
+            c.lineTo(46, 55);
+            c.closePath();
+            c.fill();
+        }
+
+        function drawAvoidPaperBag(c) {
+            const x = 15, y = 10, w = 50, h = 60;
+            const bagGradient = c.createLinearGradient(x, y, x + w, y);
+            bagGradient.addColorStop(0, '#C9A66B');
+            bagGradient.addColorStop(0.5, '#DEB887');
+            bagGradient.addColorStop(1, '#C9A66B');
+            c.fillStyle = bagGradient;
+            c.beginPath();
+            c.roundRect(x, y, w, h, [0, 0, 5, 5]);
+            c.fill();
+            c.fillStyle = '#B8956E';
+            c.beginPath();
+            c.moveTo(x, y);
+            c.lineTo(x + w * 0.15, y + h * 0.15);
+            c.lineTo(x + w * 0.85, y + h * 0.15);
+            c.lineTo(x + w, y);
+            c.closePath();
+            c.fill();
+            c.strokeStyle = '#8B6914';
+            c.lineWidth = 2;
+            c.beginPath();
+            c.roundRect(x, y, w, h, [0, 0, 5, 5]);
+            c.stroke();
+            c.fillStyle = '#5D4037';
+            c.font = 'bold 20px Arial';
+            c.textAlign = 'center';
+            c.fillText('?', x + w / 2, y + h * 0.6);
+        }
+
+        function drawAvoidFence(c) {
+            const x = 10, y = 25, w = 60, h = 50;
+            c.fillStyle = '#8B4513';
+            c.beginPath();
+            c.roundRect(x, y, 10, h, [3, 3, 0, 0]);
+            c.fill();
+            c.beginPath();
+            c.roundRect(x + w - 10, y, 10, h, [3, 3, 0, 0]);
+            c.fill();
+            c.fillStyle = '#A0522D';
+            c.beginPath();
+            c.moveTo(x, y);
+            c.lineTo(x + 5, y - 10);
+            c.lineTo(x + 10, y);
+            c.fill();
+            c.beginPath();
+            c.moveTo(x + w - 10, y);
+            c.lineTo(x + w - 5, y - 10);
+            c.lineTo(x + w, y);
+            c.fill();
+            const railGradient = c.createLinearGradient(x, 0, x + w, 0);
+            railGradient.addColorStop(0, '#DEB887');
+            railGradient.addColorStop(0.5, '#F5DEB3');
+            railGradient.addColorStop(1, '#DEB887');
+            c.fillStyle = railGradient;
+            c.beginPath();
+            c.roundRect(x - 2, y + 10, w + 4, 8, 2);
+            c.fill();
+            c.strokeStyle = '#8B4513';
+            c.lineWidth = 1;
+            c.stroke();
+            c.beginPath();
+            c.roundRect(x - 2, y + 35, w + 4, 8, 2);
+            c.fill();
+            c.stroke();
+        }
+
+        function drawAvoidCloud(c) {
+            const x = 40, y = 35;
+            c.fillStyle = '#4A5568';
+            c.beginPath();
+            c.arc(x - 15, y, 15, 0, Math.PI * 2);
+            c.arc(x, y - 8, 18, 0, Math.PI * 2);
+            c.arc(x + 18, y, 14, 0, Math.PI * 2);
+            c.arc(x + 5, y + 5, 12, 0, Math.PI * 2);
+            c.fill();
+            c.strokeStyle = '#FFD700';
+            c.lineWidth = 3;
+            c.beginPath();
+            c.moveTo(x - 5, y + 15);
+            c.lineTo(x - 10, y + 35);
+            c.lineTo(x, y + 25);
+            c.lineTo(x - 5, y + 45);
+            c.stroke();
+            c.beginPath();
+            c.moveTo(x + 10, y + 12);
+            c.lineTo(x + 5, y + 30);
+            c.lineTo(x + 15, y + 22);
+            c.lineTo(x + 10, y + 40);
+            c.stroke();
+        }
+
+        function playQuackSound() {
+            if (isMuted) return;
+            const quackSound = document.getElementById('duckQuackSound');
+            if (quackSound) {
+                quackSound.currentTime = 0;
+                quackSound.play().catch(e => console.log('Audio play failed:', e));
+                // Stop after 2 seconds
+                setTimeout(() => {
+                    quackSound.pause();
+                    quackSound.currentTime = 0;
+                }, 2000);
+            }
+        }
+
+        function playUnicornArrivalSound() {
+            if (isMuted) return;
+            const unicornSound = document.getElementById('unicornArrivalSound');
+            if (unicornSound) {
+                unicornSound.currentTime = 0;
+                unicornSound.play().catch(e => console.log('Audio play failed:', e));
+            }
+        }
+
+        function startGame() {
+            initAudio();
+            avoidScreen.classList.add('hidden');
+            gameState = 'playing';
+            score = 0;
+            frameCount = 0;
+            obstacles.length = 0;
+            player.reset();
+            initClouds();
+
+            // Keep menu music playing during game
+            startMenuMusic();
+
+            // Play start sound based on character
+            if (selectedCharacter === 'duck' || selectedCharacter === 'harri') {
+                playQuackSound();
+            } else {
+                playUnicornArrivalSound();
+            }
+        }
+
+        // Buttons
+        startBtn.addEventListener('click', () => {
+            showAvoidScreen();
+        });
+
+        startGameBtn.addEventListener('click', () => {
+            startGame();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            initAudio();
+            gameOverScreen.classList.add('hidden');
+            gameState = 'playing';
+            score = 0;
+            frameCount = 0;
+            obstacles.length = 0;
+            player.reset();
+        });
+
+        menuBtn.addEventListener('click', () => {
+            gameOverScreen.classList.add('hidden');
+            menu.classList.remove('hidden');
+            gameState = 'menu';
+            obstacles.length = 0;
+            player.reset();
+            // Restart menu music
+            startMenuMusic();
+        });
+
+        characterBtn.addEventListener('click', () => {
+            menu.classList.add('hidden');
+            characterSelect.classList.remove('hidden');
+            document.querySelectorAll('.character-option').forEach(o => {
+                o.classList.toggle('selected', o.dataset.character === selectedCharacter);
+            });
+        });
+
+        closePopupBtn.addEventListener('click', () => {
+            scorePopup.classList.add('hidden');
+            // Stop the celebration music
+            const comingOut = document.getElementById('comingOutSound');
+            if (comingOut) {
+                comingOut.pause();
+                comingOut.currentTime = 0;
+            }
+            // Resume menu music
+            startMenuMusic();
+            // Resume the game
+            if (gameState === 'paused') {
+                gameState = 'playing';
+            }
+        });
+
+        confirmCharBtn.addEventListener('click', () => {
+            localStorage.setItem('quackedUpCharacter', selectedCharacter);
+            updateMenuPreview();
+            characterSelect.classList.add('hidden');
+            menu.classList.remove('hidden');
+        });
+
+        backBtn.addEventListener('click', () => {
+            characterSelect.classList.add('hidden');
+            menu.classList.remove('hidden');
+        });
+
+        // Init
+        player.x = canvasWidth * 0.15;
+        player.reset();
+        gameLoop();
+    </script>
+</body>
+</html>
