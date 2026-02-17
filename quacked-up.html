@@ -60,8 +60,6 @@
             width: 100%;
             height: 100%;
             background: #87CEEB;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
         }
 
         #menu, #gameOver, #characterSelect, #tutorials, #avoidScreen {
@@ -396,6 +394,62 @@
             display: none;
         }
 
+        #passwordPopup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+            border: 5px solid #112231;
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            z-index: 1001;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        #passwordPopup.hidden {
+            display: none;
+        }
+
+        #passwordPopup h2 {
+            color: #112231;
+            font-size: clamp(24px, 6vw, 32px);
+            margin-bottom: 10px;
+        }
+
+        #passwordPopup p {
+            color: #112231;
+            font-size: clamp(12px, 3vw, 16px);
+            margin-bottom: 15px;
+        }
+
+        .password-input {
+            width: 80%;
+            padding: 12px 15px;
+            font-size: 18px;
+            border: 3px solid #112231;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .password-error {
+            color: #CC0000;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .password-error.hidden {
+            display: none;
+        }
+
+        .popup-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
         #scorePopup h2 {
             color: #112231;
             font-size: clamp(24px, 6vw, 32px);
@@ -439,7 +493,7 @@
             <img src="unicorn.png" class="character-preview hidden" id="menuPreviewUnicorn" alt="Unicorn">
             <button class="btn" id="startBtn">PLAY!</button>
             <button class="btn btn-secondary" id="characterBtn">Choose Character</button>
-            <a href="https://www.pocket-miracles.co.uk/lightbox-form-blackpool-lecture" target="_blank" class="btn btn-secondary" id="tutorialsBtn">Free Magic</a>
+            <button class="btn btn-secondary" id="freeMagicBtn">Free Magic</button>
             <img src="lord-harri.png" alt="Lord Harri" class="lord-harri-img" id="lordHarriImg">
         </div>
 
@@ -483,11 +537,22 @@
         </div>
 
         <div id="scorePopup" class="hidden">
-            <h2>🎉 Amazing! 🎉</h2>
-            <p>You scored 10!<br>Screenshot this for</p>
-            <div class="discount-code">10% OFF</div>
-            <p>anything from Pocket Miracles!</p>
+            <h2>🎉 100! 🎉</h2>
+            <p>You are amazing!</p>
+            <p>You have won a free copy of the<br><strong>Quacked Up Lecture Notes!</strong></p>
+            <p>Get in contact with Lord Harri to Claim</p>
             <button class="btn btn-small" id="closePopupBtn">Awesome!</button>
+        </div>
+
+        <div id="passwordPopup" class="hidden">
+            <h2>🎩 Free Magic 🎩</h2>
+            <p>Enter the password from the lecture<br>(Friday 2:30pm / Sunday 2:30pm)</p>
+            <input type="password" id="passwordInput" placeholder="Enter password..." class="password-input">
+            <p id="passwordError" class="password-error hidden">Wrong password, try again!</p>
+            <div class="popup-buttons">
+                <button class="btn btn-small" id="submitPasswordBtn">Enter</button>
+                <button class="btn btn-secondary btn-small" id="cancelPasswordBtn">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -552,14 +617,10 @@
         }, { once: true });
 
         // Responsive canvas
-        let canvasWidth, canvasHeight;
-
         function resizeCanvas() {
             const container = document.getElementById('gameContainer');
-            canvasWidth = container.clientWidth;
-            canvasHeight = container.clientHeight;
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
@@ -684,7 +745,7 @@
             maneWave: 0,
 
             reset() {
-                this.y = canvasHeight * 0.4;
+                this.y = canvas.height * 0.4;
                 this.velocity = 0;
                 this.rotation = 0;
             },
@@ -723,7 +784,7 @@
                 ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
                 ctx.rotate(this.rotation * Math.PI / 180);
 
-                const scale = Math.min(canvasWidth / 400, canvasHeight / 600);
+                const scale = Math.min(canvas.width / 400, canvas.height / 600);
                 ctx.scale(scale, scale);
 
                 if (selectedCharacter === 'duck') {
@@ -795,7 +856,7 @@
         let obstacleSpeed = 3;
 
         function createObstacle() {
-            const groundY = canvasHeight * 0.87;
+            const groundY = canvas.height * 0.87;
 
             if (selectedCharacter === 'duck' || selectedCharacter === 'harri') {
                 // Playing cards, balloons, and paper bags for duck/harri
@@ -803,23 +864,23 @@
 
                 if (rand < 0.65) {
                     // Card tower obstacles (like pipes but made of stacked cards)
-                    const minHeight = canvasHeight * 0.12;
+                    const minHeight = canvas.height * 0.12;
                     const maxHeight = groundY - obstacleGap - minHeight;
                     const topHeight = Math.random() * (maxHeight - minHeight) + minHeight;
 
                     obstacles.push({
                         type: 'cardTower',
-                        x: canvasWidth,
+                        x: canvas.width,
                         topHeight: topHeight,
                         bottomY: topHeight + obstacleGap,
                         passed: false
                     });
                 } else if (rand < 0.85) {
                     // Balloon cluster obstacle
-                    const balloonY = canvasHeight * (0.15 + Math.random() * 0.5);
+                    const balloonY = canvas.height * (0.15 + Math.random() * 0.5);
                     obstacles.push({
                         type: 'balloon',
-                        x: canvasWidth,
+                        x: canvas.width,
                         y: balloonY,
                         width: 60 + Math.random() * 30,
                         height: 80 + Math.random() * 30,
@@ -828,10 +889,10 @@
                     });
                 } else {
                     // Paper bag obstacle
-                    const bagY = canvasHeight * (0.25 + Math.random() * 0.4);
+                    const bagY = canvas.height * (0.25 + Math.random() * 0.4);
                     obstacles.push({
                         type: 'paperBag',
-                        x: canvasWidth,
+                        x: canvas.width,
                         y: bagY,
                         width: 50,
                         height: 65,
@@ -839,26 +900,28 @@
                     });
                 }
             } else {
-                // Fences and clouds for unicorn
+                // Fences (like pipes) and clouds for unicorn
                 const rand = Math.random();
 
-                if (rand < 0.6) {
-                    // Fence obstacle
-                    const fenceHeight = canvasHeight * (0.12 + Math.random() * 0.15);
+                if (rand < 0.7) {
+                    // Fence pillars (top and bottom with gap, like pipes)
+                    const minHeight = canvas.height * 0.12;
+                    const maxHeight = groundY - obstacleGap - minHeight;
+                    const topHeight = Math.random() * (maxHeight - minHeight) + minHeight;
+
                     obstacles.push({
-                        type: 'fence',
-                        x: canvasWidth,
-                        y: groundY - fenceHeight,
-                        width: 40,
-                        height: fenceHeight,
+                        type: 'fencePillar',
+                        x: canvas.width,
+                        topHeight: topHeight,
+                        bottomY: topHeight + obstacleGap,
                         passed: false
                     });
                 } else {
                     // Cloud obstacle
-                    const cloudY = canvasHeight * (0.15 + Math.random() * 0.45);
+                    const cloudY = canvas.height * (0.15 + Math.random() * 0.45);
                     obstacles.push({
                         type: 'cloud',
-                        x: canvasWidth,
+                        x: canvas.width,
                         y: cloudY,
                         width: 80 + Math.random() * 40,
                         height: 50 + Math.random() * 20,
@@ -869,7 +932,7 @@
         }
 
         function drawObstacle(obs) {
-            const scale = Math.min(canvasWidth / 400, 1);
+            const scale = Math.min(canvas.width / 400, 1);
 
             if (obs.type === 'cardTower') {
                 drawCardTower(obs, scale);
@@ -879,6 +942,8 @@
                 drawPaperBag(obs, scale);
             } else if (obs.type === 'fence') {
                 drawFence(obs, scale);
+            } else if (obs.type === 'fencePillar') {
+                drawFencePillar(obs, scale);
             } else if (obs.type === 'cloud') {
                 drawObstacleCloud(obs, scale);
             }
@@ -888,7 +953,7 @@
             const x = tower.x;
             const topH = tower.topHeight;
             const bottomY = tower.bottomY;
-            const groundY = canvasHeight * 0.87;
+            const groundY = canvas.height * 0.87;
             const pw = obstacleWidth * scale;
             const cardHeight = 25 * scale;
             const cardWidth = pw + 10;
@@ -1119,6 +1184,80 @@
             ctx.stroke();
         }
 
+        function drawFencePillar(pillar, scale) {
+            const x = pillar.x;
+            const topH = pillar.topHeight;
+            const bottomY = pillar.bottomY;
+            const groundY = canvas.height * 0.87;
+            const pw = obstacleWidth * scale;
+            const postWidth = 15 * scale;
+            const railHeight = 12 * scale;
+
+            // Helper function to draw fence section
+            function drawFenceSection(startY, endY, pointUp) {
+                const sectionHeight = endY - startY;
+                if (sectionHeight <= 0) return;
+
+                // Posts
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(x, startY, postWidth, sectionHeight);
+                ctx.fillRect(x + pw - postWidth, startY, postWidth, sectionHeight);
+
+                // Post points
+                ctx.fillStyle = '#A0522D';
+                if (pointUp) {
+                    // Points at top
+                    ctx.beginPath();
+                    ctx.moveTo(x, startY);
+                    ctx.lineTo(x + postWidth / 2, startY - 12);
+                    ctx.lineTo(x + postWidth, startY);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(x + pw - postWidth, startY);
+                    ctx.lineTo(x + pw - postWidth / 2, startY - 12);
+                    ctx.lineTo(x + pw, startY);
+                    ctx.fill();
+                } else {
+                    // Points at bottom
+                    ctx.beginPath();
+                    ctx.moveTo(x, endY);
+                    ctx.lineTo(x + postWidth / 2, endY + 12);
+                    ctx.lineTo(x + postWidth, endY);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(x + pw - postWidth, endY);
+                    ctx.lineTo(x + pw - postWidth / 2, endY + 12);
+                    ctx.lineTo(x + pw, endY);
+                    ctx.fill();
+                }
+
+                // Rails
+                const railGradient = ctx.createLinearGradient(x, 0, x + pw, 0);
+                railGradient.addColorStop(0, '#DEB887');
+                railGradient.addColorStop(0.5, '#F5DEB3');
+                railGradient.addColorStop(1, '#DEB887');
+                ctx.fillStyle = railGradient;
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = 2;
+
+                // Draw rails evenly spaced
+                const numRails = Math.max(2, Math.floor(sectionHeight / 40));
+                for (let i = 0; i < numRails; i++) {
+                    const railY = startY + (sectionHeight / (numRails + 1)) * (i + 1);
+                    ctx.beginPath();
+                    ctx.roundRect(x - 3, railY - railHeight / 2, pw + 6, railHeight, 3);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            }
+
+            // Draw top fence (hanging down)
+            drawFenceSection(0, topH, false);
+
+            // Draw bottom fence (standing up)
+            drawFenceSection(bottomY, groundY, true);
+        }
+
         function drawObstacleCloud(cloud, scale) {
             const x = cloud.x;
             const y = cloud.y;
@@ -1186,8 +1325,8 @@
             bgClouds.length = 0;
             for (let i = 0; i < 5; i++) {
                 bgClouds.push({
-                    x: Math.random() * canvasWidth,
-                    y: Math.random() * canvasHeight * 0.3 + 30,
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height * 0.3 + 30,
                     size: Math.random() * 40 + 40,
                     speed: Math.random() * 0.5 + 0.2
                 });
@@ -1197,7 +1336,7 @@
 
         function drawBackground() {
             // Different sky for unicorn mode
-            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
 
             if (selectedCharacter === 'unicorn') {
                 // Magical pastel sky
@@ -1211,12 +1350,12 @@
                 skyGradient.addColorStop(1, '#E0F6FF');
             }
             ctx.fillStyle = skyGradient;
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Sun (rainbow sun for unicorn)
             if (selectedCharacter === 'unicorn') {
                 // Rainbow sun
-                const sunX = canvasWidth - 60;
+                const sunX = canvas.width - 60;
                 const sunY = 70;
                 ctx.fillStyle = '#FFB6C1';
                 ctx.beginPath();
@@ -1233,11 +1372,11 @@
             } else {
                 ctx.fillStyle = '#FFE87C';
                 ctx.beginPath();
-                ctx.arc(canvasWidth - 60, 70, 40, 0, Math.PI * 2);
+                ctx.arc(canvas.width - 60, 70, 40, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.fillStyle = '#FFF176';
                 ctx.beginPath();
-                ctx.arc(canvasWidth - 60, 70, 30, 0, Math.PI * 2);
+                ctx.arc(canvas.width - 60, 70, 30, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -1253,8 +1392,8 @@
 
                 cloud.x -= cloud.speed;
                 if (cloud.x + cloud.size < 0) {
-                    cloud.x = canvasWidth + cloud.size;
-                    cloud.y = Math.random() * canvasHeight * 0.3 + 30;
+                    cloud.x = canvas.width + cloud.size;
+                    cloud.y = Math.random() * canvas.height * 0.3 + 30;
                 }
             });
 
@@ -1265,10 +1404,10 @@
 
             // Draw ceiling clouds (danger zone at top)
             if (gameState === 'playing') {
-                const ceilingHeight = canvasHeight * 0.08;
+                const ceilingHeight = canvas.height * 0.08;
                 // Dark stormy ceiling clouds
                 ctx.fillStyle = '#5D6D7E';
-                for (let x = 0; x < canvasWidth + 50; x += 60) {
+                for (let x = 0; x < canvas.width + 50; x += 60) {
                     ctx.beginPath();
                     ctx.arc(x, -10, 40, 0, Math.PI * 2);
                     ctx.arc(x + 30, 5, 35, 0, Math.PI * 2);
@@ -1278,14 +1417,14 @@
                 }
                 // Bottom edge of ceiling clouds
                 ctx.fillStyle = '#4A5568';
-                ctx.fillRect(0, 0, canvasWidth, ceilingHeight - 10);
+                ctx.fillRect(0, 0, canvas.width, ceilingHeight - 10);
 
                 // Warning gradient
                 const warnGradient = ctx.createLinearGradient(0, 0, 0, ceilingHeight);
                 warnGradient.addColorStop(0, 'rgba(74, 85, 104, 1)');
                 warnGradient.addColorStop(1, 'rgba(74, 85, 104, 0)');
                 ctx.fillStyle = warnGradient;
-                ctx.fillRect(0, ceilingHeight - 15, canvasWidth, 20);
+                ctx.fillRect(0, ceilingHeight - 15, canvas.width, 20);
             }
         }
 
@@ -1308,12 +1447,12 @@
         let groundOffset = 0;
 
         function drawGround() {
-            const groundY = canvasHeight * 0.87;
+            const groundY = canvas.height * 0.87;
 
             if (selectedCharacter === 'unicorn') {
                 // Magical meadow ground
                 ctx.fillStyle = '#8B4513';
-                ctx.fillRect(0, groundY + 20, canvasWidth, canvasHeight - groundY);
+                ctx.fillRect(0, groundY + 20, canvas.width, canvas.height - groundY);
 
                 // Pink/purple grass gradient
                 const grassGradient = ctx.createLinearGradient(0, groundY, 0, groundY + 25);
@@ -1321,11 +1460,11 @@
                 grassGradient.addColorStop(0.5, '#7CFC00');
                 grassGradient.addColorStop(1, '#228B22');
                 ctx.fillStyle = grassGradient;
-                ctx.fillRect(0, groundY, canvasWidth, 25);
+                ctx.fillRect(0, groundY, canvas.width, 25);
 
                 // Grass blades
                 ctx.fillStyle = '#98FB98';
-                for (let i = -groundOffset % 20; i < canvasWidth; i += 20) {
+                for (let i = -groundOffset % 20; i < canvas.width; i += 20) {
                     ctx.beginPath();
                     ctx.moveTo(i, groundY);
                     ctx.lineTo(i + 10, groundY - 10);
@@ -1335,7 +1474,7 @@
 
                 // Flowers in grass
                 const flowerColors = ['#FF69B4', '#FFD700', '#FF6B6B', '#9B59B6'];
-                for (let i = -groundOffset % 60; i < canvasWidth; i += 60) {
+                for (let i = -groundOffset % 60; i < canvas.width; i += 60) {
                     ctx.fillStyle = flowerColors[Math.floor(i / 60) % flowerColors.length];
                     ctx.beginPath();
                     ctx.arc(i + 30, groundY - 5, 5, 0, Math.PI * 2);
@@ -1347,17 +1486,17 @@
                 }
             } else {
                 ctx.fillStyle = '#8B4513';
-                ctx.fillRect(0, groundY + 20, canvasWidth, canvasHeight - groundY);
+                ctx.fillRect(0, groundY + 20, canvas.width, canvas.height - groundY);
 
                 const grassGradient = ctx.createLinearGradient(0, groundY, 0, groundY + 25);
                 grassGradient.addColorStop(0, '#7CFC00');
                 grassGradient.addColorStop(0.5, '#32CD32');
                 grassGradient.addColorStop(1, '#228B22');
                 ctx.fillStyle = grassGradient;
-                ctx.fillRect(0, groundY, canvasWidth, 25);
+                ctx.fillRect(0, groundY, canvas.width, 25);
 
                 ctx.fillStyle = '#90EE90';
-                for (let i = -groundOffset % 20; i < canvasWidth; i += 20) {
+                for (let i = -groundOffset % 20; i < canvas.width; i += 20) {
                     ctx.beginPath();
                     ctx.moveTo(i, groundY);
                     ctx.lineTo(i + 10, groundY - 8);
@@ -1367,7 +1506,7 @@
             }
 
             ctx.fillStyle = '#A0522D';
-            for (let i = -groundOffset % 40; i < canvasWidth; i += 40) {
+            for (let i = -groundOffset % 40; i < canvas.width; i += 40) {
                 ctx.beginPath();
                 ctx.arc(i + 20, groundY + 40, 8, 0, Math.PI * 2);
                 ctx.fill();
@@ -1380,20 +1519,20 @@
 
         // Score
         function drawScore() {
-            const fontSize = Math.min(canvasWidth * 0.12, 48);
+            const fontSize = Math.min(canvas.width * 0.12, 48);
             ctx.fillStyle = 'white';
             ctx.strokeStyle = '#112231';
             ctx.lineWidth = 4;
             ctx.font = `bold ${fontSize}px "Comic Sans MS", cursive`;
             ctx.textAlign = 'center';
-            ctx.strokeText(score, canvasWidth / 2, fontSize + 10);
-            ctx.fillText(score, canvasWidth / 2, fontSize + 10);
+            ctx.strokeText(score, canvas.width / 2, fontSize + 10);
+            ctx.fillText(score, canvas.width / 2, fontSize + 10);
         }
 
         // Collision
         function checkCollision() {
-            const groundY = canvasHeight * 0.87;
-            const scale = Math.min(canvasWidth / 400, canvasHeight / 600);
+            const groundY = canvas.height * 0.87;
+            const scale = Math.min(canvas.width / 400, canvas.height / 600);
 
             // Ground collision
             if (player.y + player.height * scale > groundY) {
@@ -1401,7 +1540,7 @@
             }
 
             // Ceiling collision (clouds at top)
-            const ceilingHeight = canvasHeight * 0.08;
+            const ceilingHeight = canvas.height * 0.08;
             if (player.y < ceilingHeight) {
                 return true;
             }
@@ -1409,7 +1548,7 @@
             // Obstacle collision
             for (const obs of obstacles) {
                 if (obs.type === 'cardTower') {
-                    const pw = obstacleWidth * Math.min(canvasWidth / 400, 1) + 10;
+                    const pw = obstacleWidth * Math.min(canvas.width / 400, 1) + 10;
                     const playerRight = player.x + player.width * scale - 10;
                     const playerLeft = player.x + 10;
                     const playerTop = player.y + 5;
@@ -1421,7 +1560,7 @@
                         }
                     }
                 } else if (obs.type === 'balloon') {
-                    const balloonScale = Math.min(canvasWidth / 400, 1);
+                    const balloonScale = Math.min(canvas.width / 400, 1);
                     const playerCenterX = player.x + player.width * scale / 2;
                     const playerCenterY = player.y + player.height * scale / 2;
 
@@ -1437,7 +1576,7 @@
                         return true;
                     }
                 } else if (obs.type === 'paperBag') {
-                    const bagScale = Math.min(canvasWidth / 400, 1);
+                    const bagScale = Math.min(canvas.width / 400, 1);
                     const playerRight = player.x + player.width * scale - 8;
                     const playerLeft = player.x + 8;
                     const playerTop = player.y + 5;
@@ -1451,7 +1590,7 @@
                         return true;
                     }
                 } else if (obs.type === 'fence') {
-                    const fenceScale = Math.min(canvasWidth / 400, 1);
+                    const fenceScale = Math.min(canvas.width / 400, 1);
                     const playerRight = player.x + player.width * scale - 8;
                     const playerLeft = player.x + 8;
                     const playerBottom = player.y + player.height * scale - 5;
@@ -1464,8 +1603,21 @@
                             return true;
                         }
                     }
+                } else if (obs.type === 'fencePillar') {
+                    // Similar to cardTower collision
+                    const pw = obstacleWidth * Math.min(canvas.width / 400, 1);
+                    const playerRight = player.x + player.width * scale - 10;
+                    const playerLeft = player.x + 10;
+                    const playerTop = player.y + 5;
+                    const playerBottom = player.y + player.height * scale - 5;
+
+                    if (playerRight > obs.x && playerLeft < obs.x + pw) {
+                        if (playerTop < obs.topHeight || playerBottom > obs.bottomY) {
+                            return true;
+                        }
+                    }
                 } else if (obs.type === 'cloud') {
-                    const cloudScale = Math.min(canvasWidth / 400, 1);
+                    const cloudScale = Math.min(canvas.width / 400, 1);
                     const playerCenterX = player.x + player.width * scale / 2;
                     const playerCenterY = player.y + player.height * scale / 2;
 
@@ -1492,7 +1644,7 @@
             drawBackground();
 
             // Scale game parameters
-            const scale = Math.min(canvasWidth / 400, canvasHeight / 600);
+            const scale = Math.min(canvas.width / 400, canvas.height / 600);
             obstacleSpeed = 3 * scale;
             obstacleGap = 160 * scale;
             player.gravity = 0.45 * scale;
@@ -1501,17 +1653,17 @@
             if (gameState === 'playing') {
                 player.update();
 
-                const pw = obstacleWidth * Math.min(canvasWidth / 400, 1);
+                const pw = obstacleWidth * Math.min(canvas.width / 400, 1);
 
                 for (let i = obstacles.length - 1; i >= 0; i--) {
                     obstacles[i].x -= obstacleSpeed;
 
                     // Score check
                     let obstacleRight;
-                    if (obstacles[i].type === 'cardTower') {
+                    if (obstacles[i].type === 'cardTower' || obstacles[i].type === 'fencePillar') {
                         obstacleRight = obstacles[i].x + pw + 10;
                     } else {
-                        obstacleRight = obstacles[i].x + (obstacles[i].width || 40) * Math.min(canvasWidth / 400, 1);
+                        obstacleRight = obstacles[i].x + (obstacles[i].width || 40) * Math.min(canvas.width / 400, 1);
                     }
 
                     if (!obstacles[i].passed && obstacleRight < player.x) {
@@ -1520,7 +1672,7 @@
                         playSound('score');
 
                         // Show popup immediately when hitting 10
-                        if (score === 10) {
+                        if (score === 100) {
                             gameState = 'paused';
                             scorePopup.classList.remove('hidden');
                             // Stop menu music
@@ -1649,8 +1801,8 @@
             item.className = 'avoid-item';
 
             const canvas = document.createElement('canvas');
-            canvasWidth = 80;
-            canvasHeight = 80;
+            canvas.width = 80;
+            canvas.height = 80;
             const c = canvas.getContext('2d');
             drawFunc(c);
 
@@ -1742,38 +1894,81 @@
         }
 
         function drawAvoidFence(c) {
-            const x = 10, y = 25, w = 60, h = 50;
+            // Draw fence pillar style (top and bottom with gap)
+            const x = 15, w = 50;
+            const postWidth = 8;
+
+            // Top fence section
+            const topY = 0;
+            const topH = 25;
+
+            // Posts for top
             c.fillStyle = '#8B4513';
-            c.beginPath();
-            c.roundRect(x, y, 10, h, [3, 3, 0, 0]);
-            c.fill();
-            c.beginPath();
-            c.roundRect(x + w - 10, y, 10, h, [3, 3, 0, 0]);
-            c.fill();
+            c.fillRect(x, topY, postWidth, topH);
+            c.fillRect(x + w - postWidth, topY, postWidth, topH);
+
+            // Points at bottom of top section
             c.fillStyle = '#A0522D';
             c.beginPath();
-            c.moveTo(x, y);
-            c.lineTo(x + 5, y - 10);
-            c.lineTo(x + 10, y);
+            c.moveTo(x, topH);
+            c.lineTo(x + postWidth / 2, topH + 6);
+            c.lineTo(x + postWidth, topH);
             c.fill();
             c.beginPath();
-            c.moveTo(x + w - 10, y);
-            c.lineTo(x + w - 5, y - 10);
-            c.lineTo(x + w, y);
+            c.moveTo(x + w - postWidth, topH);
+            c.lineTo(x + w - postWidth / 2, topH + 6);
+            c.lineTo(x + w, topH);
             c.fill();
+
+            // Rail for top
             const railGradient = c.createLinearGradient(x, 0, x + w, 0);
             railGradient.addColorStop(0, '#DEB887');
             railGradient.addColorStop(0.5, '#F5DEB3');
             railGradient.addColorStop(1, '#DEB887');
             c.fillStyle = railGradient;
-            c.beginPath();
-            c.roundRect(x - 2, y + 10, w + 4, 8, 2);
-            c.fill();
             c.strokeStyle = '#8B4513';
             c.lineWidth = 1;
-            c.stroke();
             c.beginPath();
-            c.roundRect(x - 2, y + 35, w + 4, 8, 2);
+            c.roundRect(x - 2, topY + 10, w + 4, 6, 2);
+            c.fill();
+            c.stroke();
+
+            // Gap in middle (where player flies through)
+            // Draw small arrow to indicate gap
+            c.fillStyle = 'rgba(255, 215, 0, 0.6)';
+            c.beginPath();
+            c.moveTo(x + w / 2 - 8, 35);
+            c.lineTo(x + w / 2 + 8, 40);
+            c.lineTo(x + w / 2 - 8, 45);
+            c.closePath();
+            c.fill();
+
+            // Bottom fence section
+            const bottomY = 55;
+            const bottomH = 25;
+
+            // Posts for bottom
+            c.fillStyle = '#8B4513';
+            c.fillRect(x, bottomY, postWidth, bottomH);
+            c.fillRect(x + w - postWidth, bottomY, postWidth, bottomH);
+
+            // Points at top of bottom section
+            c.fillStyle = '#A0522D';
+            c.beginPath();
+            c.moveTo(x, bottomY);
+            c.lineTo(x + postWidth / 2, bottomY - 6);
+            c.lineTo(x + postWidth, bottomY);
+            c.fill();
+            c.beginPath();
+            c.moveTo(x + w - postWidth, bottomY);
+            c.lineTo(x + w - postWidth / 2, bottomY - 6);
+            c.lineTo(x + w, bottomY);
+            c.fill();
+
+            // Rail for bottom
+            c.fillStyle = railGradient;
+            c.beginPath();
+            c.roundRect(x - 2, bottomY + 10, w + 4, 6, 2);
             c.fill();
             c.stroke();
         }
@@ -1900,6 +2095,43 @@
             }
         });
 
+        // Password popup for Free Magic
+        const freeMagicBtn = document.getElementById('freeMagicBtn');
+        const passwordPopup = document.getElementById('passwordPopup');
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordError = document.getElementById('passwordError');
+        const submitPasswordBtn = document.getElementById('submitPasswordBtn');
+        const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
+        const SECRET_PASSWORD = 'unicorncock';
+
+        freeMagicBtn.addEventListener('click', () => {
+            passwordPopup.classList.remove('hidden');
+            passwordInput.value = '';
+            passwordError.classList.add('hidden');
+            passwordInput.focus();
+        });
+
+        submitPasswordBtn.addEventListener('click', () => {
+            if (passwordInput.value.toLowerCase() === SECRET_PASSWORD) {
+                passwordPopup.classList.add('hidden');
+                window.open('https://www.pocket-miracles.co.uk/blackpool-free-three', '_blank');
+            } else {
+                passwordError.classList.remove('hidden');
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        });
+
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitPasswordBtn.click();
+            }
+        });
+
+        cancelPasswordBtn.addEventListener('click', () => {
+            passwordPopup.classList.add('hidden');
+        });
+
         confirmCharBtn.addEventListener('click', () => {
             localStorage.setItem('quackedUpCharacter', selectedCharacter);
             updateMenuPreview();
@@ -1913,7 +2145,7 @@
         });
 
         // Init
-        player.x = canvasWidth * 0.15;
+        player.x = canvas.width * 0.15;
         player.reset();
         gameLoop();
     </script>
